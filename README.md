@@ -1,7 +1,7 @@
 
   # AI Waste Classifier App
 
-  This is a code bundle for AI Waste Classifier App. The original project is available at https://www.figma.com/design/CQVRoRmbsnmoLmjvDCd35j/AI-Waste-Classifier-App.
+  This is a code bundle for AI Waste Classifier App. The original project is available at https://ai-waste-classifier-app-2.vercel.app/.
 
   ## Running the code
 
