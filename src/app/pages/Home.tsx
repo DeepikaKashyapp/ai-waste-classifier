@@ -52,57 +52,88 @@ export default function Home() {
     }
   };
 
-  const classifyWaste = () => {
+  // Real Integration with Flask API Backend via Axios/Fetch
+  const classifyWaste = async () => {
+    if (!selectedImage) return;
+
     setCurrentScreen('processing');
-    
-    // Simulate AI processing with mock data
-    setTimeout(() => {
-      const mockResults: ClassificationResult[] = [
-        {
-          category: 'Plastic',
-          disposal: 'Recycle in the plastic/glass bin.',
-          reuse: 'Cut in half to use as a small plant pot!',
-          imagePreview,
-          localRule: 'Local Rule: All plastic bottles must be rinsed before recycling. Remove caps and place in blue bins.'
-        },
-        {
-          category: 'Organic',
-          disposal: 'Compost in your green waste bin.',
-          reuse: 'Use as compost for your garden or plants!',
-          imagePreview,
-          localRule: 'Local Rule: Food waste accepted in green bins. No meat or dairy products allowed.'
-        },
-        {
-          category: 'Metal',
-          disposal: 'Recycle in the metal recycling bin.',
-          reuse: 'Clean and repurpose as a storage container!',
-          imagePreview,
-          localRule: 'Local Rule: Metal cans should be flattened. Aluminum and steel accepted in yellow bins.'
-        },
-        {
-          category: 'Glass',
-          disposal: 'Recycle in the glass recycling bin.',
-          reuse: 'Use as a decorative vase or storage jar!',
-          imagePreview,
-          localRule: 'Local Rule: Separate glass by color if possible. Remove lids and rinse before recycling.'
-        },
-        {
-          category: 'Paper',
-          disposal: 'Recycle in the paper recycling bin.',
-          reuse: 'Shred for packaging material or compost!',
-          imagePreview,
-          localRule: 'Local Rule: Keep paper dry and clean. Shredded paper accepted. No waxed or glossy paper.'
+
+    const formData = new FormData();
+    formData.append('image', selectedImage);
+
+    try {
+      // Connecting backend on safer IP channel
+      const response = await fetch('http://127.0.0.1:5000/predict', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend failed to respond');
+      }
+
+      const data = await response.json();
+
+      if (data.status === 'success' && data.predictions.length > 0) {
+        const detectedObject = data.predictions[0].toLowerCase();
+
+        // Rule base structural triage mapping system
+        let category = 'General Waste';
+        let disposal = 'Dispose of in the general landfills bin.';
+        let reuse = 'Can it be upcycled or repaired? Try to find creative uses!';
+        let localRule = 'Local Rule: Ensure general waste is tightly bagged before disposal.';
+
+        if (['bottle', 'wine glass', 'cup', 'glass'].some(el => detectedObject.includes(el))) {
+          category = 'Glass / Plastic';
+          disposal = 'Rinse and recycle in the designated recycling bin.';
+          reuse = 'Clean thoroughly and use as a small indoor plant pot, decorative vase, or storage jar!';
+          localRule = 'Local Rule: Remove caps and separate glass items by color if possible.';
+        } else if (['can', 'knife', 'fork', 'spoon', 'bowl'].some(el => detectedObject.includes(el))) {
+          category = 'Metal';
+          disposal = 'Recycle in the yellow metal recycling bin.';
+          reuse = 'Clean, paint, and repurpose as an aesthetic desktop pen stand or tool organizer!';
+          localRule = 'Local Rule: Metal cans should be flattened. Aluminum and steel are accepted.';
+        } else if (['apple', 'banana', 'orange', 'sandwich', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake'].some(el => detectedObject.includes(el))) {
+          category = 'Organic Waste';
+          disposal = 'Compost in your home compost pit or drop in the green waste bin.';
+          reuse = 'Excellent source for organic compost manure to nourish your backyard garden or plants!';
+          localRule = 'Local Rule: Food waste accepted in green bins. Ensure no plastic wrappers are mixed.';
+        } else if (['book', 'newspaper', 'cardboard'].some(el => detectedObject.includes(el))) {
+          category = 'Paper / Cardboard';
+          disposal = 'Flatten and place in the blue paper recycling bin.';
+          reuse = 'Use for DIY crafts, scrapbooking, or shred for home composting layers.';
+          localRule = 'Local Rule: Keep paper dry. Wet paper or pizza boxes with oil stains go to general waste.';
         }
-      ];
-      
-      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
-      setResult(randomResult);
+
+        setResult({
+          category: `${category} (${data.predictions[0]})`,
+          disposal: disposal,
+          reuse: reuse,
+          imagePreview: imagePreview,
+          localRule: localRule
+        });
+
+      } else {
+        setResult({
+          category: 'Unclassified Item',
+          disposal: 'Drop in the general waste bin if unsure.',
+          reuse: 'Look at the item carefully; can it be repurposed instead of thrown away?',
+          imagePreview: imagePreview,
+          localRule: 'Local Rule: If an item cannot be detected, look up the material type locally before discarding.'
+        });
+      }
+
       setCurrentScreen('result');
-      
-      // Add points for classification
+
+      // Update points dynamically
       const updatedUser = addPoints();
       setUserPoints(updatedUser.points);
-    }, 2500);
+
+    } catch (error) {
+      console.error('Error connecting to ML backend:', error);
+      alert('Backend Server is not running on port 5000! Make sure your Python terminal is active.');
+      setCurrentScreen('upload');
+    }
   };
 
   const resetApp = () => {
@@ -129,7 +160,7 @@ export default function Home() {
               Classify Waste with AI
             </h2>
             <p className="text-lg text-gray-600">
-              Upload an image to get instant disposal and upcycling ideas.
+              Upload an image to get instant disposal and upcycling ideas via Real YOLOv8 AI.
             </p>
           </div>
 
@@ -180,17 +211,12 @@ export default function Home() {
 
       {currentScreen === 'processing' && (
         <div className="space-y-8">
-          {/* Hero Section */}
           <div className="text-center space-y-3">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
               Classify Waste with AI
             </h2>
-            <p className="text-lg text-gray-600">
-              Upload an image to get instant disposal and upcycling ideas.
-            </p>
           </div>
 
-          {/* Upload Box - Disabled State */}
           <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 md:p-16 flex flex-col items-center justify-center bg-gray-50 opacity-60">
             <Upload className="w-16 h-16 text-gray-400 mb-4" />
             <p className="text-lg text-gray-700 font-medium mb-2">
@@ -198,7 +224,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Disabled Button */}
           <div className="flex justify-center">
             <button
               disabled
@@ -212,7 +237,7 @@ export default function Home() {
           <div className="flex items-center justify-center gap-3 text-orange-500">
             <Loader2 className="w-6 h-6 animate-spin" />
             <p className="text-lg font-medium">
-              ⏳ Analyzing image using YOLO AI model... please wait.
+              ⏳ Running real-time AI object detection on Python layer... please wait.
             </p>
           </div>
         </div>
@@ -220,19 +245,16 @@ export default function Home() {
 
       {currentScreen === 'result' && result && (
         <div className="space-y-8">
-          {/* Points Earned Banner */}
           <div className="bg-gradient-to-r from-green-400 to-green-600 text-white text-center py-3 rounded-lg shadow-md">
             <p className="text-xl font-bold">🎉 +10 Points Earned!</p>
           </div>
 
-          {/* Result Title */}
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
               Classification Result
             </h2>
           </div>
 
-          {/* Image Thumbnail */}
           <div className="flex justify-center">
             <img
               src={result.imagePreview}
@@ -241,16 +263,13 @@ export default function Home() {
             />
           </div>
 
-          {/* Result Card */}
           <div className="bg-green-50 border-l-4 border-[#4CAF50] rounded-lg p-6 md:p-8 shadow-md space-y-6">
-            {/* Category */}
             <div>
               <h3 className="text-2xl font-bold text-[#2E7D32] mb-2">
                 Category: {result.category}
               </h3>
             </div>
 
-            {/* Local Recycling Rule */}
             {result.localRule && (
               <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                 <h4 className="font-semibold text-blue-900 text-lg mb-1">📍 Local Recycling Rules</h4>
@@ -258,7 +277,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Disposal */}
             <div className="space-y-2">
               <div className="flex items-start gap-3">
                 <Trash2 className="w-6 h-6 text-gray-700 flex-shrink-0 mt-1" />
@@ -269,7 +287,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Reuse */}
             <div className="space-y-2">
               <div className="flex items-start gap-3">
                 <Recycle className="w-6 h-6 text-[#4CAF50] flex-shrink-0 mt-1" />
@@ -281,7 +298,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Reset Button */}
           <div className="flex justify-center">
             <button
               onClick={resetApp}
