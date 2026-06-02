@@ -26,21 +26,4 @@ The live application frontend is available at: [AI Waste Classifier Live](https:
 
 ---
 
-## 💻 Getting Started & Installation
 
-Follow these steps to set up and run the complete project locally.
-
-### 1. Prerequisites
-Ensure you have the following installed on your machine:
-* [Node.js](https://nodejs.org/) (v16 or higher recommended)
-* [Python 3.8+](https://www.python.org/)
-
-### 2. Setting Up the Web Frontend
-Open your terminal at the root directory of the project and run:
-
-```bash
-# Install project dependencies
-npm i
-
-# Start the local development server
-npm run dev
